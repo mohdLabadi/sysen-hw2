@@ -31,13 +31,14 @@ from functions import agent_run, ensure_ollama_available  # noqa: E402
 MODEL = os.environ.get("OLLAMA_MODEL", "smollm2:1.7b")
 
 DEFAULT_USER_TASK = (
-    "You are preparing a study guide section.\n"
-    "1) From our **local course materials**, explain supervised learning and how we judge "
-    "generalization vs overfitting.\n"
-    "2) Use the **glossary** to define key terms you rely on.\n"
-    "3) Add **live** USD→EUR, GBP, JPY rates and a short analogy.\n"
-    "4) Optionally contrast with a **Wikipedia** intro extract on supervised learning—clearly "
-    "labeled as external, not as our course notes."
+    "You are preparing a short study guide on **foreign exchange**.\n"
+    "1) From our **local notes**, explain what a spot rate is, how bid/ask spreads work, and "
+    "why cross rates matter.\n"
+    "2) Use the **glossary** to define key terms (e.g. base vs quote currency, pip).\n"
+    "3) Add **live** USD→EUR, GBP, JPY rates from the API tool and relate them to the concepts "
+    "in the notes.\n"
+    "4) Add a **Wikipedia** intro extract on exchange rates—clearly labeled as Wikipedia, not "
+    "as our bundled notes."
 )
 
 
@@ -61,12 +62,12 @@ def run_agent_local_knowledge(user_task: str) -> tuple[str, dict[str, Any]]:
     """
     role = (
         "You have two different local tools—use BOTH in this turn:\n"
-        "• retrieve_course_context_tool — longer passages from bundled .txt notes.\n"
+        "• retrieve_course_context_tool — longer passages from bundled FX/currency .txt notes.\n"
         "• search_glossary_csv — precise rows from glossary.csv (term/definition/category).\n"
-        "Derive search queries ONLY from the machine-learning / course-content parts of the task "
-        "(supervised learning, generalization, overfitting, validation, glossary terms). "
-        "Do not use retrieve_course_context_tool for currency rates or Wikipedia—those are handled "
-        "by a later agent. Do not write the final study guide; only invoke tools."
+        "Derive search queries from the user’s task: concepts like spot rates, spreads, pips, "
+        "cross rates, ECB, Frankfurter/API feeds, base vs quote currency. "
+        "Do not pull live numeric rates here—that is Agent 2. Do not write the study guide yet; "
+        "only invoke tools."
     )
     calls = agent_run(
         role=role,
@@ -84,15 +85,21 @@ def run_agent_local_knowledge(user_task: str) -> tuple[str, dict[str, Any]]:
         )
     if "search_glossary_csv" not in merged:
         merged["search_glossary_csv"] = search_glossary_csv(
-            query="supervised learning overfitting validation", max_rows=8
+            query="spot spread pip base quote cross ECB", max_rows=8
         )
 
-    # If the model misuses tool 1 (e.g. searches for currency text), replace with ML-focused RAG.
-    def _looks_like_fx_query(text: str) -> bool:
+    # Strong retrieval fallback if the model’s query misses our FX corpus or scores are flat.
+    def _off_topic_ml(text: str) -> bool:
         t = (text or "").lower()
         return any(
             x in t
-            for x in ("jpy", "gbp", "eur", "usd", "exchange rate", "forex", "currency pair")
+            for x in (
+                "supervised learning",
+                "overfitting",
+                "neural",
+                "cross-validation",
+                "machine learning basics",
+            )
         )
 
     rctx = merged.get("retrieve_course_context_tool")
@@ -101,11 +108,11 @@ def run_agent_local_knowledge(user_task: str) -> tuple[str, dict[str, Any]]:
         chunks = rctx.get("chunks") or []
         scores = [c.get("score", 0) for c in chunks if isinstance(c, dict)]
         weak = not scores or max(scores, default=0) == 0.0
-        if _looks_like_fx_query(rq) or weak:
+        if weak or _off_topic_ml(rq):
             merged["retrieve_course_context_tool"] = retrieve_course_context_tool(
                 query=(
-                    "supervised learning generalization overfitting validation "
-                    "cross-validation labeled data"
+                    "foreign exchange spot rate bid ask spread cross rate "
+                    "Frankfurter ECB pip base quote currency"
                 ),
                 top_k=5,
             )
@@ -127,8 +134,8 @@ def run_agent_external_apis(user_task: str) -> tuple[str, dict[str, Any]]:
         "You have two external tools—use BOTH:\n"
         "• get_fx_rates — ECB-based FX from Frankfurter. Use base_currency USD and "
         "quote_currencies EUR,GBP,JPY unless the user asks for others.\n"
-        "• fetch_wikipedia_extract — MUST use page_title exactly: Supervised_learning "
-        "(underscore, as in the English Wikipedia article title). Do not use any other title.\n"
+        "• fetch_wikipedia_extract — MUST use page_title exactly: Exchange_rate "
+        "(underscore; English Wikipedia article on exchange rates).\n"
         "Do not write the essay here; only call tools."
     )
     calls = agent_run(
@@ -144,7 +151,7 @@ def run_agent_external_apis(user_task: str) -> tuple[str, dict[str, Any]]:
         merged["get_fx_rates"] = get_fx_rates("USD", "EUR,GBP,JPY")
     if "fetch_wikipedia_extract" not in merged:
         merged["fetch_wikipedia_extract"] = fetch_wikipedia_extract(
-            page_title="Supervised_learning", max_sentences=4
+            page_title="Exchange_rate", max_sentences=4
         )
     else:
         wiki = merged.get("fetch_wikipedia_extract") or {}
@@ -156,7 +163,7 @@ def run_agent_external_apis(user_task: str) -> tuple[str, dict[str, Any]]:
         )
         if bad:
             merged["fetch_wikipedia_extract"] = fetch_wikipedia_extract(
-                page_title="Supervised_learning", max_sentences=4
+                page_title="Exchange_rate", max_sentences=4
             )
 
     bundle = {
@@ -172,8 +179,8 @@ def run_agent_synthesizer(user_task: str, local_json: str, external_json: str) -
     role = (
         "You are the author of a single markdown study-guide section.\n"
         "Attribution rules:\n"
-        "• Claims about **our course** must follow only JSON under outputs.retrieve_course_context_tool "
-        "and outputs.search_glossary_csv.\n"
+        "• Facts attributed to **our local notes / glossary** must follow only JSON under "
+        "outputs.retrieve_course_context_tool and outputs.search_glossary_csv.\n"
         "• **Exchange rates** must match only JSON under outputs.get_fx_rates.\n"
         "• **Wikipedia** content must be labeled explicitly as Wikipedia (from "
         "outputs.fetch_wikipedia_extract) and must not be presented as course notes.\n"

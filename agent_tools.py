@@ -23,8 +23,8 @@ TOOL_RETRIEVE_COURSE_CONTEXT: dict[str, Any] = {
     "function": {
         "name": "retrieve_course_context_tool",
         "description": (
-            "Retrieve top-ranked text chunks from bundled course notes (.txt files) using "
-            "lexical scoring. Use for conceptual questions aligned with your local corpus."
+            "Retrieve top-ranked text chunks from bundled FX/currency notes (.txt files) using "
+            "lexical scoring. Use for conceptual questions about rates, spreads, and markets."
         ),
         "parameters": {
             "type": "object",
@@ -58,8 +58,8 @@ TOOL_SEARCH_GLOSSARY_CSV: dict[str, Any] = {
     "function": {
         "name": "search_glossary_csv",
         "description": (
-            "Search the local glossary.csv for term/definition/category rows matching the query. "
-            "Use for crisp definitions and vocabulary tied to supervised learning and evaluation."
+            "Search glossary.csv for term/definition/category rows (FX vocabulary: spot, pip, "
+            "base/quote, spread, cross rate, etc.)."
         ),
         "parameters": {
             "type": "object",
@@ -134,7 +134,7 @@ TOOL_GET_FX_RATES: dict[str, Any] = {
 
 
 def fetch_wikipedia_extract(
-    page_title: str = "Supervised_learning",
+    page_title: str = "Exchange_rate",
     max_sentences: int = 4,
 ) -> dict:
     """
@@ -142,7 +142,7 @@ def fetch_wikipedia_extract(
     Attribution: not course material; third-party encyclopedia.
     """
     if not (page_title or "").strip():
-        page_title = "Supervised_learning"
+        page_title = "Exchange_rate"
     ms = int(max_sentences) if max_sentences else 4
     ms = max(1, min(ms, 10))
     url = "https://en.wikipedia.org/w/api.php"
@@ -194,7 +194,7 @@ TOOL_FETCH_WIKIPEDIA_EXTRACT: dict[str, Any] = {
             "properties": {
                 "page_title": {
                     "type": "string",
-                    "description": 'Article title, e.g. "Supervised_learning" or "Machine learning"',
+                    "description": 'Article title, e.g. "Exchange_rate" or "Foreign_exchange_market"',
                 },
                 "max_sentences": {
                     "type": "integer",

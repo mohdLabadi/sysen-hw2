@@ -1,10 +1,8 @@
 
-Machine Learning Basics
+Foreign Exchange — Core Ideas
 
-Machine learning is a subset of artificial intelligence that focuses on algorithms that can learn from data. There are three main types:
+A foreign exchange rate tells you how much of one currency is needed to buy another. Quotes are usually written as a currency pair: the first currency is the base, and the second is the quote. For example, if EUR/USD is 1.08, one euro costs 1.08 U.S. dollars.
 
-1. Supervised Learning: Learning with labeled examples (classification, regression)
-2. Unsupervised Learning: Finding patterns in unlabeled data (clustering, dimensionality reduction)  
-3. Reinforcement Learning: Learning through interaction with an environment
+Retail and corporate users care about spot rates—the price for settlement “on the spot” (typically two business days for many currency pairs). Banks and brokers publish bid and ask prices: the bid is what they will pay to buy the base currency, and the ask is what they charge to sell it. The difference is the spread; a tight spread usually means a liquid market.
 
-Popular algorithms include linear regression, decision trees, neural networks, and support vector machines.
+Exchange rates move because of interest rates, inflation expectations, growth outlooks, risk sentiment, and central-bank policy. When comparing rates over time, always note the quote convention (direct vs indirect) and whether you are looking at interbank mid rates or customer-facing prices.

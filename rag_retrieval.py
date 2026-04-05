@@ -15,7 +15,7 @@ import pandas as pd
 _H2_DIR = Path(__file__).resolve().parent
 DEFAULT_CORPUS_FILES = [
     _H2_DIR / "data" / "sample.txt",
-    _H2_DIR / "data" / "notes_evaluation.txt",
+    _H2_DIR / "data" / "notes_evaluation.txt",  # FX markets / APIs (cross rates, feeds)
 ]
 
 GLOSSARY_CSV = _H2_DIR / "data" / "glossary.csv"
@@ -136,7 +136,7 @@ def retrieve_course_context(query: str, top_k: int = 4) -> dict:
         "top_k": top_k,
         "chunks": chunks_out,
         "corpus_files": [str(p) for p in DEFAULT_CORPUS_FILES if p.is_file()],
-        "note": "Lexical chunk retrieval over local text files (Homework 2 RAG).",
+        "note": "Lexical chunk retrieval over local FX/currency text notes (RAG).",
     }
 
 

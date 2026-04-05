@@ -25,8 +25,8 @@ Use this file for the **Documentation** section of your Canvas `.docx`. The **re
 | `rag_retrieval.py` | **RAG implementation** — chunking, lexical scoring, `search_glossary()`. |
 | `agent_tools.py` | **Tool implementations + Ollama JSON schemas** for all four tools. |
 | `functions.py` | Ollama HTTP client (`agent` / `agent_run`). |
-| `data/sample.txt`, `notes_evaluation.txt` | Text corpora for chunk retrieval. |
-| `data/glossary.csv` | Tabular glossary for `search_glossary_csv`. |
+| `data/sample.txt`, `notes_evaluation.txt` | FX/currency text corpora (spot rates, spreads, cross rates, APIs). |
+| `data/glossary.csv` | FX glossary (pip, base/quote, ECB, Frankfurter, etc.). |
 | `01_ollama.py` | Optional background `ollama serve`. |
 | `requirements.txt` | Dependencies. |
 
@@ -36,7 +36,7 @@ Use this file for the **Documentation** section of your Canvas `.docx`. The **re
 
 1. **Agent 1 — Local knowledge broker**  
    - **Tools:** `retrieve_course_context_tool`, `search_glossary_csv`.  
-   - **Intent:** Pull prose context from notes + definitional rows from the glossary (different data shapes, same “grounded in local files” story).
+   - **Intent:** Pull prose from local FX notes + definitional rows from the currency glossary (two local data shapes, same retrieval story).
 
 2. **Agent 2 — External API broker**  
    - **Tools:** `get_fx_rates`, `fetch_wikipedia_extract`.  
@@ -52,8 +52,8 @@ Use this file for the **Documentation** section of your Canvas `.docx`. The **re
 
 | Source | File(s) | Behavior |
 |--------|---------|----------|
-| Course notes (text) | `data/sample.txt`, `data/notes_evaluation.txt` | Paragraph-aware chunks, lexical overlap scoring, top‑k chunks with scores. |
-| Glossary (tabular) | `data/glossary.csv` | Rows match if any significant query token hits concatenated columns (or full query substring). |
+| FX notes (text) | `data/sample.txt`, `data/notes_evaluation.txt` | Paragraph-aware chunks, lexical overlap scoring, top‑k chunks with scores. |
+| Glossary (tabular) | `data/glossary.csv` | FX terms; rows match if any significant query token hits concatenated columns (or full substring). |
 
 Extend retrieval by adding more `.txt` paths in `DEFAULT_CORPUS_FILES` (`rag_retrieval.py`) or more rows to `glossary.csv`.
 
@@ -93,6 +93,8 @@ pip install -r requirements.txt
 ollama pull smollm2:1.7b
 python homework2_agent_system.py
 ```
+
+If you see `ModuleNotFoundError: pandas`, install deps in this environment (`pip install -r requirements.txt`) or ensure the venv is activated—system Python often will not have the packages.
 
 Custom task:
 

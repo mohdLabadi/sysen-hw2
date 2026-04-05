@@ -1,9 +1,9 @@
 term,definition,category
-Supervised learning,"Learning a mapping from inputs to labeled outputs using example pairs; includes classification (discrete labels) and regression (continuous targets).",core
-Unsupervised learning,"Finding structure in data without labels, e.g. clustering or dimensionality reduction.",core
-Overfitting,"When a model fits training noise and performs poorly on held-out data.",evaluation
-Training set,"Examples used to fit model parameters.",evaluation
-Validation set,"Held-out data used to tune hyperparameters and estimate generalization during development.",evaluation
-Cross-validation,"Resampling procedure (e.g. k-fold) to estimate performance with limited data.",evaluation
-Feature,"An input variable or transformation of raw inputs used by the model.",data
-Label,"The target output associated with an input in supervised learning.",core
+Spot rate,"The FX price for the standard settlement horizon (often T+2 for major pairs); contrasts with forward rates.",core
+Base currency,"The first currency in a pair; the amount of quote currency needed to buy one unit of base.",core
+Quote currency,"The second currency in a pair; priced per one unit of base currency.",core
+Bid-ask spread,"Difference between dealer sell (ask) and buy (bid) prices; liquidity tends to tighten spreads.",core
+Pip,"Smallest conventional price increment for a pair (often 0.0001 for majors like EUR/USD).",core
+Cross rate,"An exchange rate between two non-USD currencies, often derived from USD legs.",markets
+ECB,"European Central Bank; policy and reference rates influence EUR crosses.",policy
+Frankfurter API,"Public HTTP service that exposes ECB-based daily FX rates for teaching and examples.",tools

@@ -1,7 +1,7 @@
-Model Evaluation and Generalization
+Cross Rates, Data Feeds, and APIs
 
-When you train a supervised model, you care about performance on new data—not memorizing the training set. A common workflow is to split data into training and validation (or test) partitions. If training error is low but validation error is high, the model may be overfitting: it learned noise and idiosyncrasies instead of the underlying pattern.
+A cross rate expresses one currency in terms of another without using the U.S. dollar as an intermediate, though in practice many desks still triangulate through USD for consistency. If you know USD/JPY and EUR/USD, you can derive EUR/JPY; automated systems must handle rounding and timestamp alignment carefully.
 
-Regularization, more data, simpler models, and careful feature design can reduce overfitting. Metrics such as accuracy, F1, or mean squared error should always be reported with the split they were computed on, so readers know whether numbers reflect in-sample fit or out-of-sample generalization.
+Market participants consume rates from data vendors, central banks, or open HTTP APIs. For teaching demos, ECB-oriented public feeds (for example Frankfurter) expose daily reference rates suitable for examples—always document the rate date and that retail spreads differ from mid quotes.
 
-Cross-validation helps estimate performance when the dataset is small. In k-fold cross-validation, the data are divided into k folds; the model is trained k times, each time holding out one fold for evaluation, and results are averaged.
+Hedging and translation: companies with overseas revenues use forwards or options to manage FX risk; accountants distinguish transaction exposure from translation of foreign subsidiaries’ statements. For this course’s agent exercise, focus on clear definitions, live numeric examples from the API tool, and never mix a rate from one source with a label from another without saying so.
