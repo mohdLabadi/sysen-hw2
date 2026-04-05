@@ -1,0 +1,7 @@
+Model Evaluation and Generalization
+
+When you train a supervised model, you care about performance on new data—not memorizing the training set. A common workflow is to split data into training and validation (or test) partitions. If training error is low but validation error is high, the model may be overfitting: it learned noise and idiosyncrasies instead of the underlying pattern.
+
+Regularization, more data, simpler models, and careful feature design can reduce overfitting. Metrics such as accuracy, F1, or mean squared error should always be reported with the split they were computed on, so readers know whether numbers reflect in-sample fit or out-of-sample generalization.
+
+Cross-validation helps estimate performance when the dataset is small. In k-fold cross-validation, the data are divided into k folds; the model is trained k times, each time holding out one fold for evaluation, and results are averaged.

@@ -1,0 +1,9 @@
+term,definition,category
+Supervised learning,"Learning a mapping from inputs to labeled outputs using example pairs; includes classification (discrete labels) and regression (continuous targets).",core
+Unsupervised learning,"Finding structure in data without labels, e.g. clustering or dimensionality reduction.",core
+Overfitting,"When a model fits training noise and performs poorly on held-out data.",evaluation
+Training set,"Examples used to fit model parameters.",evaluation
+Validation set,"Held-out data used to tune hyperparameters and estimate generalization during development.",evaluation
+Cross-validation,"Resampling procedure (e.g. k-fold) to estimate performance with limited data.",evaluation
+Feature,"An input variable or transformation of raw inputs used by the model.",data
+Label,"The target output associated with an input in supervised learning.",core
