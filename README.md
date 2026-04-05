@@ -1,113 +1,133 @@
 # Homework 2 — AI Agent System with RAG and Tools
 
-Self-contained folder for the cumulative assignment: **multi-agent orchestration**, **RAG over multiple local sources**, and **function calling** to **several** tools (local + external APIs). Course lab folders are **not** required.
-
-Use this file for the **Documentation** section of your Canvas `.docx`. The **reflective writing** (3+ paragraphs, your own words, not AI-generated) is separate in Word.
+This repository is the **technical + documentation** deliverable. Copy sections below into your Canvas **`.docx`** as needed. Your **written reflection** (3+ paragraphs, your own words) is separate in Word.
 
 ---
 
-## What makes this submission “complete”
+## Quick start (run the system)
 
-| Requirement | How it is met |
-|-------------|----------------|
-| **2–3 agents** | Three agents: (1) local knowledge broker, (2) external-API broker, (3) synthesizer. |
-| **RAG** | **Two** local retrieval modes: chunked `.txt` notes + **tabular** `glossary.csv` (structured RAG). Multiple corpus files under `data/`. |
-| **Function calling / tools** | **Four** tools: two local data sources + **two** external REST APIs (Frankfurter FX, Wikipedia MediaWiki). |
-| **Nuanced orchestration** | Each tool-using agent may receive **multiple** `tool_calls` per model round; the code **aggregates all outputs** (not only the first). Deterministic **fallbacks** run if a small model omits a tool so demos stay reproducible. |
+1. **Install [Ollama](https://ollama.com)** and start it (`ollama serve` in a terminal, or run `python 01_ollama.py` once).
+2. Open a terminal in the **repository root** (the folder that contains `homework2_agent_system.py`).
+3. Create and activate a virtual environment, then install Python packages:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate    # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+4. Pull the default model: `ollama pull smollm2:1.7b` (or set another model with the `OLLAMA_MODEL` environment variable).
+5. Run: `python homework2_agent_system.py`
 
----
+**No API keys** are required. You **do** need internet for live FX rates and Wikipedia. If you see `ModuleNotFoundError: pandas`, activate the venv and run `pip install -r requirements.txt` again.
 
-## File map
-
-| Path | Purpose |
-|------|---------|
-| `homework2_agent_system.py` | **Main orchestration** — three agents, wiring, JSON bundles. |
-| `rag_retrieval.py` | **RAG implementation** — chunking, lexical scoring, `search_glossary()`. |
-| `agent_tools.py` | **Tool implementations + Ollama JSON schemas** for all four tools. |
-| `functions.py` | Ollama HTTP client (`agent` / `agent_run`). |
-| `data/sample.txt`, `notes_evaluation.txt` | FX/currency text corpora (spot rates, spreads, cross rates, APIs). |
-| `data/glossary.csv` | FX glossary (pip, base/quote, ECB, Frankfurter, etc.). |
-| `01_ollama.py` | Optional background `ollama serve`. |
-| `requirements.txt` | Dependencies. |
+Optional: `python homework2_agent_system.py --task "Your custom instructions"`  
+Optional RAG-only demo: `python rag_retrieval.py`
 
 ---
 
-## System architecture (agent roles)
+## 1. System architecture
+
+**Workflow (what runs, in order):**
 
 1. **Agent 1 — Local knowledge broker**  
-   - **Tools:** `retrieve_course_context_tool`, `search_glossary_csv`.  
-   - **Intent:** Pull prose from local FX notes + definitional rows from the currency glossary (two local data shapes, same retrieval story).
+   Uses **function calling** with two tools: `retrieve_course_context_tool` (reads your bundled `.txt` notes) and `search_glossary_csv` (reads `glossary.csv`). The model is prompted to call both; the script also merges all tool outputs and applies simple fallbacks if a small model skips a tool.
 
 2. **Agent 2 — External API broker**  
-   - **Tools:** `get_fx_rates`, `fetch_wikipedia_extract`.  
-   - **Intent:** Live numeric FX data + optional encyclopedia intro; both are third-party and must be labeled in the final text.
+   Uses **function calling** with two tools: `get_fx_rates` (live rates from Frankfurter) and `fetch_wikipedia_extract` (English Wikipedia intro). Defaults: USD vs EUR, GBP, JPY; Wikipedia article `Exchange_rate` unless the model supplies a valid call.
 
 3. **Agent 3 — Synthesizer**  
-   - **Tools:** none.  
-   - **Intent:** One markdown study-guide section with strict attribution: local JSON vs FX JSON vs Wikipedia.
+   **No tools.** Takes the JSON from Agents 1 and 2 and writes **one markdown** answer, with rules so local notes/glossary, live rates, and Wikipedia are not mixed up.
+
+**Main entry point:** `homework2_agent_system.py`  
+**RAG logic:** `rag_retrieval.py`  
+**Tool definitions + HTTP helpers:** `agent_tools.py`  
+**Ollama HTTP wrapper:** `functions.py`
 
 ---
 
-## RAG data sources and search behavior
+## 2. RAG data source and search functions
 
-| Source | File(s) | Behavior |
-|--------|---------|----------|
-| FX notes (text) | `data/sample.txt`, `data/notes_evaluation.txt` | Paragraph-aware chunks, lexical overlap scoring, top‑k chunks with scores. |
-| Glossary (tabular) | `data/glossary.csv` | FX terms; rows match if any significant query token hits concatenated columns (or full substring). |
+**Text corpus (chunked retrieval)**  
+- **Files:** `data/sample.txt`, `data/notes_evaluation.txt` (FX/currency topics: spot rates, spreads, cross rates, APIs, etc.).  
+- **How it works:** Implemented in `rag_retrieval.py` as `retrieve_course_context(query, top_k)`. Text is split into paragraph-style **chunks**, each chunk is **scored** by lexical overlap with the query, and the **top‑k** chunks are returned with `{source, text, score}`.  
+- **Config:** List of files is `DEFAULT_CORPUS_FILES` in `rag_retrieval.py` (add more `.txt` paths there to extend the knowledge base).
 
-Extend retrieval by adding more `.txt` paths in `DEFAULT_CORPUS_FILES` (`rag_retrieval.py`) or more rows to `glossary.csv`.
+**Tabular glossary (structured retrieval)**  
+- **File:** `data/glossary.csv` (columns: `term`, `definition`, `category`).  
+- **How it works:** `search_glossary(query, max_rows)` in `rag_retrieval.py` loads the CSV with pandas and returns rows where the query matches as a **substring** of any column **or** where **significant words** from the query appear in the row text (token-style match).
 
----
-
-## Tool functions (for your docx table)
-
-| Tool name | Purpose | Parameters | Returns (summary) |
-|-----------|---------|------------|-------------------|
-| `retrieve_course_context_tool` | Chunked retrieval from local `.txt` corpora. | `query`, optional `top_k` | Dict with `chunks` (source, text, score), `corpus_files`, etc. |
-| `search_glossary_csv` | Structured lookup in `glossary.csv`. | `query`, optional `max_rows` | Dict with `rows` (list of records), `source_file`. |
-| `get_fx_rates` | Live FX rates. | `base_currency`, `quote_currencies` | Dict with `rates`, `rates_table`, `date`, `api`. |
-| `fetch_wikipedia_extract` | English Wikipedia intro extract. | `page_title`, optional `max_sentences` | Dict with `extract`, `article_url`, attribution `note`. |
-
-Schemas: `agent_tools.py`.
+**Tool wrappers for the LLM:** `retrieve_course_context_tool` and `search_glossary_csv` in `agent_tools.py` call the functions above.
 
 ---
 
-## Technical details
+## 3. Tool functions
+
+| Name | Purpose | Parameters | What it returns |
+|------|---------|------------|-----------------|
+| `retrieve_course_context_tool` | Retrieve top text chunks from local `.txt` corpora. | `query` (string), `top_k` (int, optional, default 4) | Dict with `chunks` (list of `{source, text, score}`), `corpus_files`, `query`, `note`. |
+| `search_glossary_csv` | Look up rows in `glossary.csv`. | `query` (string), `max_rows` (int, optional) | Dict with `rows` (list of dicts), `source_file`, `note`. |
+| `get_fx_rates` | Latest FX rates from Frankfurter (ECB-based). | `base_currency` (e.g. `USD`), `quote_currencies` (comma-separated, e.g. `EUR,GBP,JPY`) | Dict with `rates`, `rates_table`, `date`, `base`, `api`. |
+| `fetch_wikipedia_extract` | First sentences of a Wikipedia article (intro). | `page_title` (e.g. `Exchange_rate`), `max_sentences` (optional) | Dict with `extract`, `article_url`, `page_title`, `note` (says it is third-party). |
+
+Ollama **JSON schemas** for these tools are in `agent_tools.py`.
+
+---
+
+## 4. Technical details
 
 | Topic | Detail |
 |-------|--------|
-| LLM | Ollama `http://localhost:11434`, default model `smollm2:1.7b` — override with `OLLAMA_MODEL`. |
-| APIs | `https://api.frankfurter.app/latest` (no key); `https://en.wikipedia.org/w/api.php` (no key; **User-Agent** set per Wikimedia guidance). |
-| Python | `requests`, `pandas`, `tabulate` — see `requirements.txt`. |
+| **API keys** | **None.** Frankfurter and Wikipedia are public HTTP APIs. |
+| **Endpoints** | Ollama chat: `http://localhost:11434` · Frankfurter: `https://api.frankfurter.app/latest` · Wikipedia: `https://en.wikipedia.org/w/api.php` |
+| **LLM** | Default model `smollm2:1.7b`. Override: `export OLLAMA_MODEL=your-model` (macOS/Linux) before running. |
+| **Python packages** | `requests`, `pandas`, `tabulate` — pinned in `requirements.txt`. |
+| **Repo layout** | See table below. |
+
+| File / folder | Role |
+|---------------|------|
+| `homework2_agent_system.py` | Main script: three agents, prompts, fallbacks. |
+| `rag_retrieval.py` | Chunking, scoring, `search_glossary`. |
+| `agent_tools.py` | Tool implementations + tool JSON for Ollama. |
+| `functions.py` | `agent` / `agent_run` → Ollama HTTP API. |
+| `data/*.txt`, `data/glossary.csv` | Local RAG sources (edit these to change what retrieval sees). |
+| `requirements.txt` | `pip install -r requirements.txt` |
+| `01_ollama.py` | Optional: starts `ollama serve` in the background. |
 
 ---
 
-## Usage (recommended: virtual environment)
+## 5. Usage instructions (install, data, run)
 
-From the repository root:
+**Install dependencies**
 
 ```bash
+cd /path/to/sysen-hw2
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-ollama pull smollm2:1.7b
+```
+
+**Data sources** — Already included under `data/`. To customize: edit the `.txt` files and `glossary.csv`, or add `.txt` paths in `DEFAULT_CORPUS_FILES` inside `rag_retrieval.py`. No database or embedding server is required.
+
+**API keys** — Not used; nothing to configure.
+
+**Ollama** — Install Ollama, then either keep `ollama serve` running or use `python 01_ollama.py`. Pull a model: `ollama pull smollm2:1.7b`.
+
+**Run**
+
+```bash
+source .venv/bin/activate
 python homework2_agent_system.py
 ```
 
-If you see `ModuleNotFoundError: pandas`, install deps in this environment (`pip install -r requirements.txt`) or ensure the venv is activated—system Python often will not have the packages.
-
-Custom task:
-
-```bash
-python homework2_agent_system.py --task "Your instructions here"
-```
-
-**Screenshots:** capture Agent 1 JSON (both local tools), Agent 2 JSON (both external tools), Agent 3 markdown — plus optional `python rag_retrieval.py` for RAG-only output.
+**Screenshots for the report:** Use the printed blocks **AGENT 1**, **AGENT 2**, and **AGENT 3**. Optionally run `python rag_retrieval.py` for a RAG-only screenshot.
 
 ---
 
-## Git links (example paths)
+## Git links (for Canvas)
 
-- Orchestration / main: `homework2_agent_system.py`
-- RAG: `rag_retrieval.py`
-- Tools: `agent_tools.py`
+Replace with your GitHub **blob** URLs on `main`:
+
+- **Orchestration / main system:** `homework2_agent_system.py`
+- **RAG implementation:** `rag_retrieval.py`
+- **Tools / function definitions:** `agent_tools.py`
+
+Example pattern: `https://github.com/<user>/<repo>/blob/main/homework2_agent_system.py`
